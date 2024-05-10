@@ -2,17 +2,29 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
+
 use App\Http\Requests\LoginRquest;
 use App\Http\Requests\SignupRequest;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Lcobucci\JWT\Token\InvalidTokenStructure;
 use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
-class AuthController extends Controller
+class AuthController extends Controller implements HasMiddleware
 {
+    public static function middleware(): array
+    {
+        return [
+            new Middleware('auth', except: ['signup', 'login', 'refresh']),
+        ];
+    }
     public function signup(SignupRequest $request)
     {
         try {
@@ -25,14 +37,14 @@ class AuthController extends Controller
                 'LastName' => $data['LastName'],
                 'Email' => $data['Email'],
                 'Username' => $data['Username'],
-                'Password' => Hash::make($data['Password']),
+                'Password' => bcrypt($data['Password']),
             ]);
 
             // Generate access token
             $token = JWTAuth::fromUser($user);
 
             // Set token in HTTP-only cookie
-            $cookie = cookie('access_token', $token, config('jwt.ttl'), null, null, false, true);
+            $cookie = cookie('access_token', $token, config('jwt.ttl'), secure: true, httpOnly: true);
 
             // Return response with success message
             return response()->json(['user' => $user, 'message' => 'registered successfully'])->withCookie($cookie);
@@ -45,51 +57,35 @@ class AuthController extends Controller
     {
         try {
             // Validate incoming request
-            $credentials = $request->validate();
+            $credentials = $request->validated();
 
-            // // Check if the provided identity is an email or a username
-            // $field = filter_var($credentials['identity'], FILTER_VALIDATE_EMAIL) ? 'Email' : 'Username';
+            // Retrieve the user by email
+            $user = User::where('Email', $credentials['Email'])->first();
 
-            // // Authenticate user
-            // if (!Auth::attempt([$field => $credentials['identity'], 'Password' => $credentials['Password']])) {
-            //     return response()->json(['message' => 'Unauthorized'], 401);
-            // }
+            // Check if the user exists and the password matches
+            if (!$user || !Hash::check($credentials['Password'], $user->Password)) {
+                return response()->json(['message' => 'Provided email or password is incorrect'], 422);
+            }
 
+            // Generate access token
+            $token = JWTAuth::fromUser($user);
 
-            // if (!Auth::attempt($credentials)) {
-            //     return response([
-            //         'message' => 'Provided email or password is incorrect'
-            //     ], 422);
-            // }
+            // Set token in HTTP-only cookie
+            $cookie = cookie('access_token', $token, config('jwt.ttl'), secure: true, httpOnly: true);
 
-
-            // // Retrieve authenticated user
-            // $user = Auth::user();
-
-            // // Generate access token
-            // $token = JWTAuth::fromUser($user);
-
-            // // Set token in HTTP-only cookie
-            // $cookie = cookie('access_token', $token, config('jwt.ttl'), null, null, false, true);
-
-            // // Return response with success message
-            // return response()->json(['user' => $user, 'message' => 'loged successfully'])->withCookie($cookie);
-
-
-            /** @var \App\Models\User $user */
-            $user = Auth::user();
-            $token = $user->createToken('main')->plainTextToken;
-            return response(compact('user', 'token'));
+            // Return response with success message
+            return response()->json(['user' => $user, 'message' => 'Logged in successfully'])->withCookie($cookie);
         } catch (JWTException $e) {
             return response()->json(['message' => 'Failed to log in'], 500);
         }
     }
 
+
     public function logout(Request $request)
     {
         try {
             // Invalidate the token, user will need to log in again
-            Auth::logout();
+            $logout = auth()->logout();
 
             return response()->json(['message' => 'Logged out successfully']);
         } catch (\Exception $e) {
@@ -100,25 +96,28 @@ class AuthController extends Controller
     public function refresh(Request $request)
     {
         try {
-            // Get the old token from the request headers
-            $oldToken = $request->header('Authorization');
-
-            // Refresh access token
-            $token = JWTAuth::refresh($oldToken);
-
-            // Set token in HTTP-only cookie
-            return $this->respondWithToken($token);
+            $user = JWTAuth::parseToken()->authenticate();
+            return response()->json(["message" => 'Token still valid']);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Failed to refresh token'], 500);
+            if ($e instanceof TokenExpiredException) {
+                $newToken = JWTAuth::parseToken()->refresh();
+                // Set token in HTTP-only cookie
+                $cookie = cookie('refresh_token', $newToken, config('jwt.refresh_ttl'), secure: true, httpOnly: true);
+                return response()->json(['message' => 'Token refreshed successfully'], 200)->withCookie($cookie);
+            } else if ($e instanceof TokenInvalidException) {
+                return response()->json(['message' => 'Invalid Token'], 401);
+            } else {
+                return response()->json(['message' => 'Token not found'], 401);
+            }
         }
     }
 
-    protected function respondWithToken($token)
-    {
-        // Set token in HTTP-only cookie
-        $cookie = cookie('access_token', $token, config('jwt.ttl'), null, null, false, true);
+    // protected function respondWithToken($token)
+    // {
+    //     // Set token in HTTP-only cookie
+    //     $cookie = cookie('access_token', $token, config('refresh_ttl'), null, null, false, true);
 
-        // Return response with success message
-        return response()->json(['message' => 'Authentication successful'])->withCookie($cookie);
-    }
+    //     // Return response with success message
+    //     return response()->json(['message' => 'Authentication successful'])->withCookie($cookie);
+    // }
 }

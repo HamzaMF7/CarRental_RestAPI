@@ -6,25 +6,19 @@ use Illuminate\Support\Facades\Route;
 
 
 
-// users APIs 
-Route::post('/signup', [AuthController::class, 'signup']);
-Route::post('login', [AuthController::class, 'login']);
-Route::post('refresh', [AuthController::class, 'refresh']);
+// // users APIs 
+// Route::post('/signup', [AuthController::class, 'signup']);
+// Route::post('login', [AuthController::class, 'login']);
+// Route::post('refresh', [AuthController::class, 'refresh']);
 
 
-// Route::group([
+Route::group(['prefix' => 'user'], function ($router) {
 
-//     'middleware' => 'api',
-//     'prefix' => 'auth'
-
-// ], function ($router) {
-
-//     Route::post('signup', [AuthController::class, 'signup']);
-//     // Route::post('logout', 'AuthController@logout');
-//     Route::post('refresh', [AuthController::class, 'refresh']);
-//     // Route::post('me', 'AuthController@me');
-
-// });
+    Route::post('signup', [AuthController::class, 'signup']);
+    Route::post('login', [AuthController::class, 'login']);
+    Route::post('logout', [AuthController::class, 'logout']);
+    Route::get('refresh', [AuthController::class, 'refresh']);
+});
 
 
 
