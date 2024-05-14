@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LoginRequest;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
 
-use App\Http\Requests\LoginRquest;
 use App\Http\Requests\SignupRequest;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Lcobucci\JWT\Token\InvalidTokenStructure;
+use Laravel\Prompts\Key;
 use Tymon\JWTAuth\Exceptions\JWTException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -22,7 +22,7 @@ class AuthController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('auth', except: ['signup', 'login', 'refresh']),
+            new Middleware('auth:user', except: ['signup', 'login', 'refresh']),
         ];
     }
     public function signup(SignupRequest $request)
@@ -31,7 +31,7 @@ class AuthController extends Controller implements HasMiddleware
             // Validate incoming request
             $data = $request->validated();
 
-            // Create a new user
+            // Create a new user 
             $user = User::create([
                 'FirstName' => $data['FirstName'],
                 'LastName' => $data['LastName'],
@@ -40,35 +40,37 @@ class AuthController extends Controller implements HasMiddleware
                 'Password' => bcrypt($data['Password']),
             ]);
 
-            // Generate access token
-            $token = JWTAuth::fromUser($user);
-
-            // Set token in HTTP-only cookie
-            $cookie = cookie('access_token', $token, config('jwt.ttl'), secure: true, httpOnly: true);
-
             // Return response with success message
-            return response()->json(['user' => $user, 'message' => 'registered successfully'])->withCookie($cookie);
+            return response()->json(['user' => $user, 'message' => "Your account has been created successfully."]);
         } catch (\Exception $e) {
             return response()->json(['message' => 'Failed to create user.'], 500);
         }
     }
 
-    public function login(LoginRquest $request)
+
+    public function login(LoginRequest $request)
     {
         try {
             // Validate incoming request
             $credentials = $request->validated();
 
-            // Retrieve the user by email
+            //Retrieve the user by email
             $user = User::where('Email', $credentials['Email'])->first();
+
 
             // Check if the user exists and the password matches
             if (!$user || !Hash::check($credentials['Password'], $user->Password)) {
                 return response()->json(['message' => 'Provided email or password is incorrect'], 422);
             }
 
-            // Generate access token
-            $token = JWTAuth::fromUser($user);
+            // Customize the token payload with the user's ID or other identifying information
+            $customPayload = [
+                'user_id' => $user->id,
+                'user_name' => $user->FirstName,
+            ];
+
+            // // Generate access token
+            $token = JWTAuth::customClaims($customPayload)->fromUser($user);
 
             // Set token in HTTP-only cookie
             $cookie = cookie('access_token', $token, config('jwt.ttl'), secure: true, httpOnly: true);
@@ -84,8 +86,8 @@ class AuthController extends Controller implements HasMiddleware
     public function logout(Request $request)
     {
         try {
-            // Invalidate the token, user will need to log in again
-            $logout = auth()->logout();
+            // // Pass true to force the token to be blacklisted "forever"
+            $logout = auth()->logout(true);
 
             return response()->json(['message' => 'Logged out successfully']);
         } catch (\Exception $e) {
@@ -95,9 +97,11 @@ class AuthController extends Controller implements HasMiddleware
 
     public function refresh(Request $request)
     {
+
         try {
+            // Attempt to parse and authenticate the token
             $user = JWTAuth::parseToken()->authenticate();
-            return response()->json(["message" => 'Token still valid']);
+            return response()->json(['message' => 'Token still valid']);
         } catch (\Exception $e) {
             if ($e instanceof TokenExpiredException) {
                 $newToken = JWTAuth::parseToken()->refresh();
@@ -112,6 +116,13 @@ class AuthController extends Controller implements HasMiddleware
         }
     }
 
+    public function protectedResource()
+    {
+        // $payload = auth()->payload();
+        // dd($payload);
+        return response()->json(["message" => "accessed"]);
+    }
+
     // protected function respondWithToken($token)
     // {
     //     // Set token in HTTP-only cookie
@@ -120,4 +131,5 @@ class AuthController extends Controller implements HasMiddleware
     //     // Return response with success message
     //     return response()->json(['message' => 'Authentication successful'])->withCookie($cookie);
     // }
+
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -7,17 +8,41 @@ use Illuminate\Support\Facades\Route;
 
 
 // // users APIs 
-// Route::post('/signup', [AuthController::class, 'signup']);
-// Route::post('login', [AuthController::class, 'login']);
-// Route::post('refresh', [AuthController::class, 'refresh']);
+// Route::post('/signup',  'signup']);
+// Route::post('login',  'login']);
+// Route::post('refresh',  'refresh']);
 
 
-Route::group(['prefix' => 'user'], function ($router) {
+/*
+  ############################# Clients APIs ########################################"
+*/
 
-    Route::post('signup', [AuthController::class, 'signup']);
-    Route::post('login', [AuthController::class, 'login']);
-    Route::post('logout', [AuthController::class, 'logout']);
-    Route::get('refresh', [AuthController::class, 'refresh']);
+// Authentication APIs
+Route::group(['prefix' => 'user'], function () {
+    Route::controller(AuthController::class)->group(function () {
+        Route::post('/signup',  'signup');
+        Route::post('/login',  'login');
+        Route::post('/logout',  'logout');
+        Route::get('/refresh',  'refresh');
+        Route::get('/protectedResource',  'protectedResource');
+    });
+});
+
+
+
+/*
+############################# Dashboard APIs ########################################"
+*/
+// Authentication APIs
+Route::group(['prefix' => 'admin'], function () {
+    Route::controller(AdminAuthController::class)->group(function () {
+        // All other routes inside the group will be protected by authentication middleware
+        Route::post('/login', 'login');
+        Route::post('/logout', 'logout');
+        Route::post('/register', 'register');
+        Route::get('/refresh', 'refresh');
+        Route::get('/protectedResource',  'protectedResource');
+    });
 });
 
 
