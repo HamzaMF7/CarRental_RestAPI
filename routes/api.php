@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CarController;
+use App\Http\Middleware\VerifyJWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -38,12 +40,16 @@ Route::group(['prefix' => 'admin'], function () {
     Route::controller(AdminAuthController::class)->group(function () {
         // All other routes inside the group will be protected by authentication middleware
         Route::post('/login', 'login');
-        Route::post('/logout', 'logout');
+        Route::post('/logout', 'logout')->middleware('auth:admin');
         Route::post('/register', 'register');
         Route::get('/refresh', 'refresh');
-        Route::get('/protectedResource',  'protectedResource');
+        Route::get('/protectedResource',  'protectedResource')->middleware(VerifyJWT::class);
     });
 });
+
+
+Route::apiResource('car', CarController::class);
+
 
 
 

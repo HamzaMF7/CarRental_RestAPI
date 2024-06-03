@@ -28,7 +28,6 @@ return new class extends Migration
                 'Unavailable',
                 'Damaged',
             ])->default('Available');
-            $table->unsignedBigInteger('CarDetailID');
             $table->unsignedBigInteger('CategoryID');
             $table->unsignedBigInteger('BrandID');
             $table->timestamps();

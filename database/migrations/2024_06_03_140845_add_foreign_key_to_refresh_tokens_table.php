@@ -11,9 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('cars', function (Blueprint $table) {
-            $table->foreign('CategoryID')->references('id')->on('categories');
-            $table->foreign('BrandID')->references('id')->on('brands');
+        Schema::table('refresh_tokens', function (Blueprint $table) {
+            $table->foreign('admin_id')->references('id')->on('admins')->onDelete('cascade');
         });
     }
 
@@ -22,9 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('cars', function (Blueprint $table) {
-            $table->dropForeign(['CategoryID']);
-            $table->dropForeign(['BrandID']);
+        Schema::table('refresh_tokens', function (Blueprint $table) {
+            $table->dropForeign(['admin_id']);
         });
     }
 };

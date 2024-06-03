@@ -62,7 +62,7 @@ class AuthController extends Controller implements HasMiddleware
             if (!$user || !Hash::check($credentials['Password'], $user->Password)) {
                 return response()->json(['message' => 'Provided email or password is incorrect'], 422);
             }
-
+ 
             // Customize the token payload with the user's ID or other identifying information
             $customPayload = [
                 'user_id' => $user->id,

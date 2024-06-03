@@ -2,9 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\VerifyJWT;
 use App\Http\Requests\AdminLoginRequest;
 use App\Http\Requests\AdminRegisterRequest;
 use App\Models\Admin;
+use App\Models\RefreshToken;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -20,7 +23,8 @@ class AdminAuthController extends Controller implements HasMiddleware
     public static function middleware(): array
     {
         return [
-            new Middleware('auth:admin', except: ['login', 'refresh', 'register']),
+            // new Middleware('auth:admin', except: ['login', 'refresh', 'register', 'protectedResource']),
+            // new Middleware(VerifyJWT::class, except: ['login', 'refresh', 'register']),
         ];
     }
 
@@ -64,21 +68,36 @@ class AdminAuthController extends Controller implements HasMiddleware
             }
 
             // Customize the token payload with the admin's ID
-            $customPayload = [
+            $accessTokenClaims = [
                 'admin_id' => $admin->id,
-                'admin_firstName' => $admin->FirstName,
-                'admin_lastName' => $admin->LastName,
+                'firstName' => $admin->FirstName,
+                'lastName' => $admin->LastName,
                 'role_id' => $admin->RoleID
             ];
 
-            // // Generate access token
-            $token = JWTAuth::customClaims($customPayload)->fromUser($admin);
+            $refreshTokenClaims = [
+                'firstName' => $admin->FirstName,
+                'lastName' => $admin->LastName,
+            ];
+
+            // // Generate access and refresh token 
+            $accesstoken = JWTAuth::customClaims($accessTokenClaims)->fromUser($admin);
+            $refreshToken = JWTAuth::customClaims($refreshTokenClaims)->fromUser($admin);
+
+            RefreshToken::create([
+                'admin_id' => $admin->id,
+                'token' => $refreshToken,
+                'expires_at' => Carbon::now()->addWeeks(2), // Example expiration date
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
 
             // Set token in HTTP-only cookie
-            $cookie = cookie('access_token', $token, config('jwt.ttl'), secure: true, httpOnly: true);
+            $cookie = cookie('refresh_token', $refreshToken, config('jwt.refresh_ttl'), httpOnly: true);
 
             // Return response with success message
-            return response()->json(['admin' => $admin, 'message' => 'Logged in successfully'])->withCookie($cookie);
+            return response()->json(['admin' => $admin, 'access_token' => $accesstoken, 'message' => 'Logged in successfully'])->withCookie($cookie);
         } catch (JWTException $e) {
             return response()->json(['message' => 'Failed to log in'], 500);
         }
@@ -88,7 +107,7 @@ class AdminAuthController extends Controller implements HasMiddleware
     {
         try {
             // // Pass true to force the token to be blacklisted "forever"
-            $logout = auth('admin')->logout(true);
+            $logout = auth('admin')->logout();
 
             return response()->json(['message' => 'Logged out successfully']);
         } catch (\Exception $e) {
@@ -99,21 +118,37 @@ class AdminAuthController extends Controller implements HasMiddleware
     public function refresh(Request $request)
     {
 
-        try {
-            // Attempt to parse and authenticate the token
-            $admin = JWTAuth::parseToken()->authenticate();
-            return response()->json(['message' => 'Token still valid']);
-        } catch (\Exception $e) {
-            if ($e instanceof TokenExpiredException) {
-                $newToken = JWTAuth::parseToken()->refresh();
-                // Set token in HTTP-only cookie
-                $cookie = cookie('refresh_token', $newToken, config('jwt.refresh_ttl'), secure: true, httpOnly: true);
-                return response()->json(['message' => 'Token refreshed successfully'], 200)->withCookie($cookie);
-            } else if ($e instanceof TokenInvalidException) {
-                return response()->json(['message' => 'Invalid Token'], 401);
-            } else {
-                return response()->json(['message' => 'Token not found'], 401);
-            }
+        //extract the token from cookie 
+        $token = $request->cookie('refresh_token');
+
+        if (!$token) {
+            return response()->json(['message' => "Token not found"], 401);
+        }
+        // verify the token in database
+        $refreshToken = RefreshToken::where('token', $token)->first();
+
+        if (!$refreshToken) {
+            return  response()->json(['message' => 'Invalid token'], 401);
+        } else if (Carbon::parse($refreshToken->expires_at)->isPast()) {
+            return  response()->json(['message' => 'Token expired'], 403);
+        } else {
+
+            $newAccessToken = JWTAuth::refresh();
+            $newRefreshToken = JWTAuth::refresh();
+
+            // Update the refresh token
+            $refreshToken->update([
+                'token' => $newRefreshToken,
+                'expires_at' => Carbon::now()->addWeeks(2),
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
+
+            // override the old token in HTTP-only cookie
+            $cookie = cookie('refresh_token', $newRefreshToken, config('jwt.refresh_ttl'), httpOnly: true);
+
+
+            return response()->json(["access_token" => $newAccessToken])->withCookie($cookie);
         }
     }
 
