@@ -40,7 +40,7 @@ Route::group(['prefix' => 'admin'], function () {
     Route::controller(AdminAuthController::class)->group(function () {
         // All other routes inside the group will be protected by authentication middleware
         Route::post('/login', 'login');
-        Route::post('/logout', 'logout')->middleware('auth:admin');
+        Route::post('/logout', 'logout');
         Route::post('/register', 'register');
         Route::get('/refresh', 'refresh');
         Route::get('/protectedResource',  'protectedResource')->middleware(VerifyJWT::class);

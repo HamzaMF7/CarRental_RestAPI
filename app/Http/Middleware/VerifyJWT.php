@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
@@ -21,8 +22,8 @@ class VerifyJWT
     {
         try {
             // Check if the token is present
-            if (!$token = JWTAuth::parseToken()->authenticate()) {
-                return response()->json(['message' => 'User not found'], 404);
+            if (!$admin = JWTAuth::parseToken()->authenticate()) {
+                return response()->json(['message' => 'Your not authorized'], 401);
             }
         } catch (TokenExpiredException $e) {
             return response()->json(['message' => 'Token expired'], 403);

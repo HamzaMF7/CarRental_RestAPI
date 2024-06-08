@@ -22,8 +22,8 @@ class AdminLoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'Email' => ['required', 'email', 'exists:admins,email', 'max:255'],
-            'Password' => ['required'],
+            'email' => ['required', 'email', 'exists:admins,email', 'max:255'],
+            'password' => ['required'],
             // 'remember' => 'boolean'
         ];
     }

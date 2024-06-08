@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 use Tymon\JWTAuth\Contracts\JWTSubject;
 use Laravel\Sanctum\HasApiTokens;
 
+
+
 class Admin extends Authenticatable implements JWTSubject
 {
     use HasFactory, HasApiTokens, Notifiable;
@@ -19,12 +21,12 @@ class Admin extends Authenticatable implements JWTSubject
      * @var array<int, string>
      */
     protected $fillable = [
-        'FirstName',
-        'LastName',
-        'Email',
-        'Username',
-        'Password',
-        'RoleID',
+        'firstName',
+        'lastName',
+        'email',
+        'username',
+        'password',
+        'roleID',
     ];
 
     /**
@@ -33,7 +35,7 @@ class Admin extends Authenticatable implements JWTSubject
      * @var array<int, string>
      */
     protected $hidden = [
-        'Password',
+        'password',
     ];
 
     /**
@@ -45,7 +47,6 @@ class Admin extends Authenticatable implements JWTSubject
     {
         return [
             'email_verified_at' => 'datetime',
-            'Password' => 'hashed',
         ];
     }
 
