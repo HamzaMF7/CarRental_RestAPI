@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\CarStoreRequest;
 use App\Http\Requests\CarUpdateRequest;
 use App\Models\Car;
+use App\Models\Location;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CarController extends Controller
@@ -29,30 +31,50 @@ class CarController extends Controller
 
     /**
      * Store a newly created resource in storage.
+     * insertion of data across both cars and car_details tables in a single request
      */
     public function store(CarStoreRequest $request)
     {
         try {
             // Validate the request
-            $carData = $request->validated();
+            $validatedData = $request->validated();
+
+            $carData = $validatedData['car'];
+            $carDetailsData = $validatedData['carDetails'];
 
             // Upload and store image
-            if ($request->hasFile('Image')) {
-                $image = $request->file('Image');
+            if ($request->hasFile('car.Image')) {
+                $image = $request->file('car.Image');
                 $image_name = time() . '_' . $image->getClientOriginalName(); // Add timestamp to ensure unique name
                 $path = $image->storeAs('images', $image_name, 'public');
                 $carData["Image"] = $path;
             }
 
-            // Create car record 
-            $createdCar = Car::create($carData);
+            // Initialize variables to store the created car and car details
+            $car = null;
+            $carDetails = null;
 
-            return response()->json(['message' => 'New car created successfully', 'car data' => $carData]);
-        } catch (\Exception $e) {
+            // Use transaction to ensure atomicity
+            DB::transaction(function () use ($carData, $carDetailsData, &$car, &$carDetails) {
+                $car = Car::create($carData);
+                $carDetails = $car->carDetails()->create(array_merge($carDetailsData, ['CarID' => $car->id]));
+            });
+
+            // Return success response
+            return response()->json([
+                'message' => 'New car created successfully',
+                'car' => $car,
+                'carDetails' => $carDetails
+            ], 201);
+        } catch (\Throwable $e) {
             // Return error response
-            return response()->json(['message' => 'Failed to create car', 'error' => $e], 500);
+            return response()->json([
+                'message' => 'Failed to create car',
+                'error' => $e->getMessage() // Only return the error message for security reasons
+            ], 500);
         }
     }
+
 
     /**
      * Display the specified resource.
@@ -75,37 +97,46 @@ class CarController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        dd($request->all());
-        // try {
-        //     // Find the car by its ID
-        //     $requestedCar = Car::findOrFail($id);
+        try {
+            // Find the car by its ID
+            $requestedCar = Car::findOrFail($id);
 
-        //     // Delete the old image from storage if it exists
-        //     if ($requestedCar->Image) {
-        //         Storage::disk('public')->delete($requestedCar->Image);
-        //     }
+            // Separate car and carDetails data
+            $carData = $request->input('car');
+            $carDetailsData = $request->input('carDetails');
 
-        //     // Return the validated data immediately
-        //     $incomingData = $request->all();
+            // Handle image update and upload
+            if ($request->hasFile('car.Image')) {
+                //Delete the old image from storage if it exists
+                if ($requestedCar->Image) {
+                    Storage::disk('public')->delete($requestedCar->Image);
+                }
 
-        //     // Upload and store the new image if provided
-        //     if ($request->hasFile('Image')) {
-        //         $image = $request->file('Image');
-        //         $image_name = time() . '_' . $image->getClientOriginalName(); // Add timestamp to ensure unique name
-        //         $path = $image->storeAs('images', $image_name, 'public');
-        //         $incomingData['Image'] = $path;
-        //     }
+                // Upload and store the new image
+                $image = $request->file('car.Image');
+                $image_name = time() . '_' . $image->getClientOriginalName(); // Add timestamp to ensure unique name
+                $path = $image->storeAs('images', $image_name, 'public');
+                $carData['Image'] = $path;
+            }
+            // Use transaction to ensure atomicity
 
-        //     return response()->json(['incommingData' => $incomingData]);
+            DB::transaction(function () use ($requestedCar, $carData, $carDetailsData) {
+                // Update the car record 
+                $requestedCar->update($carData);
 
-        //     // Update the car record with the validated data
-        //     // $requestedCar->update($incomingData);
+                // Update the carDetails record 
+                $requestedCar->carDetails->update($carDetailsData);
+            });
 
-        //     // Return a success response
-        //     return response()->json(['message' => 'Car updated successfully']);
-        // } catch (\Exception $e) {
-        //     return response()->json(['error' => $e], 500);
-        // }
+            // Return a success response
+            return response()->json(['message' => 'Car updated successfully']);
+        } catch (\Throwable $e) {
+            // Return error response
+            return response()->json([
+                'message' => 'Failed to update car',
+                'error' => $e->getMessage() // Only return the error message for security reasons
+            ], 500);
+        }
     }
 
 
@@ -115,5 +146,26 @@ class CarController extends Controller
     public function destroy(string $id)
     {
         return Car::destroy($id);
+    }
+
+
+    public function findCar(Request $request)
+    {
+        try {
+            $availableCarsAtLocation = Location::with(['cars' => function ($query) {
+                $query->where('CurrentStatus', 'Available');
+            }])->find($request->locationID);
+
+            $availableCarCount = $availableCarsAtLocation->count();
+
+            return response()->json([
+                "availableCarsAtLocation" => $availableCarsAtLocation,
+                "availableCarCount" => $availableCarCount
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

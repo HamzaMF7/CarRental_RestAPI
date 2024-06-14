@@ -4,6 +4,8 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
+use function Laravel\Prompts\table;
+
 return new class extends Migration
 {
     /**
@@ -13,15 +15,17 @@ return new class extends Migration
     {
         Schema::create('rentals', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('UserID');
             $table->date('StartDate');
             $table->date('EndDate');
             $table->decimal('TotalCost', 10, 2);
-            $table->unsignedBigInteger('CarID');
             $table->enum('Status', ['Pending', 'Confirmed', 'Active', 'Completed', 'Cancelled', 'Expired', 'Returned', 'Overdue', 'Damaged', 'Refunded'])->default('Pending');
             $table->string('AdditionalRequirements')->nullable();
+            $table->bigInteger('PhoneNumber');
+            $table->string('City');
             $table->unsignedBigInteger('PickupLocationID');
             $table->unsignedBigInteger('ReturnLocationID');
+            $table->unsignedBigInteger('CarID');
+            $table->unsignedBigInteger('UserID');
             $table->timestamps();
         });
     }

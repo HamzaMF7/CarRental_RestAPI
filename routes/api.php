@@ -2,21 +2,16 @@
 
 use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BrandContoller;
 use App\Http\Controllers\CarController;
+use App\Http\Controllers\CategoryContoller;
 use App\Http\Middleware\VerifyJWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
-
-// // users APIs 
-// Route::post('/signup',  'signup']);
-// Route::post('login',  'login']);
-// Route::post('refresh',  'refresh']);
-
-
 /*
-  ############################# Clients APIs ########################################"
+  ############################# Client APIs ########################################"
 */
 
 // Authentication APIs
@@ -33,7 +28,7 @@ Route::group(['prefix' => 'user'], function () {
 
 
 /*
-############################# Dashboard APIs ########################################"
+############################# Amdin APIs ########################################"
 */
 // Authentication APIs
 Route::group(['prefix' => 'admin'], function () {
@@ -49,6 +44,9 @@ Route::group(['prefix' => 'admin'], function () {
 
 
 Route::apiResource('car', CarController::class);
+Route::post('/findcar', [CarController::class, 'findCar']);
+Route::apiResource('brand', BrandContoller::class);
+Route::apiResource('category', CategoryContoller::class);
 
 
 

@@ -17,4 +17,9 @@ class Location extends Model
         'ZipCode',
         'PhoneNumber',
     ];
+
+    public function cars()
+    {
+        return $this->hasMany(Car::class, 'LocationID');
+    }
 }

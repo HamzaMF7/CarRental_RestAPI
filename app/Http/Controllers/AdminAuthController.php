@@ -96,7 +96,7 @@ class AdminAuthController extends Controller
             // Set token in HTTP-only cookie
             $cookie = cookie('refresh_token', $refreshToken, config('jwt.refresh_ttl'), '/', null, false, true, false, 'None');
             // Return response with success message
-            return response()->json(['token' => $accessToken, 'message' => 'Logged in successfully'])->withCookie($cookie);
+            return response()->json(['token' => $accessToken, 'roles' => [2001, 5150, 1984],  'message' => 'Logged in successfully'])->withCookie($cookie);
         } catch (JWTException $e) {
             return response()->json(['message' => 'Failed to log in'], 500);
         }
@@ -165,7 +165,7 @@ class AdminAuthController extends Controller
             // override the old token in HTTP-only cookie
             $cookie = cookie('refresh_token', $newRefreshToken, config('jwt.refresh_ttl'), '/', null, false, true, false, 'None');
 
-            return response()->json(["token" => $newAccessToken])->withCookie($cookie);
+            return response()->json(["token" => $newAccessToken , 'roles' => [2001, 5150, 1984]])->withCookie($cookie);
         }
     }
 

@@ -22,6 +22,11 @@ class Car extends Model
     ];
 
 
+    public function carDetails()
+    {
+        return $this->hasOne(CarDetails::class, 'CarID');
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
@@ -30,5 +35,10 @@ class Car extends Model
     public function brand()
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    public function location()
+    {
+        return $this->hasOne(Location::class);
     }
 }

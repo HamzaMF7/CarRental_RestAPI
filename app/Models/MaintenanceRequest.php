@@ -24,6 +24,6 @@ class MaintenanceRequest extends Model
 
     public function car()
     {
-        return $this->belongsTo(Car::class, 'CarID');
+        return $this->belongsTo(Car::class);
     }
 }

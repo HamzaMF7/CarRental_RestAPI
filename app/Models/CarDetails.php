@@ -23,4 +23,9 @@ class CarDetails extends Model
         'MaintenanceHistory',
         'CarID',
     ];
+
+    public function car()
+    {
+        return $this->belongsTo(Car::class);
+    }
 }

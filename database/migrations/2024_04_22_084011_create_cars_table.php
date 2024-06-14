@@ -30,6 +30,7 @@ return new class extends Migration
             ])->default('Available');
             $table->unsignedBigInteger('CategoryID');
             $table->unsignedBigInteger('BrandID');
+            $table->unsignedBigInteger('LocationID');
             $table->timestamps();
         });
     }

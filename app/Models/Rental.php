@@ -19,6 +19,8 @@ class Rental extends Model
         'TotalCost',
         'Status',
         'AdditionalRequirements',
+        'PhoneNumber',
+        'City',
         'PickupLocationID',
         'ReturnLocationID',
     ];
@@ -47,4 +49,5 @@ class Rental extends Model
     {
         return $this->belongsTo(Location::class, 'ReturnLocationID');
     }
+
 }
