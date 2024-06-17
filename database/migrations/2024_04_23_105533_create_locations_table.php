@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('City', 50);
             $table->string('State', 50);
             $table->string('ZipCode', 20);
-            $table->string('PhoneNumber', 15);
+            $table->string('PhoneNumber', 255);
             $table->timestamps();
         });
     }

@@ -50,4 +50,8 @@ class Rental extends Model
         return $this->belongsTo(Location::class, 'ReturnLocationID');
     }
 
+    public function payement(){
+        return $this->hasOne(Payment::class , 'RentalID');
+    }
+
 }

@@ -45,6 +45,7 @@ Route::group(['prefix' => 'admin'], function () {
 
 Route::apiResource('car', CarController::class);
 Route::post('/findcar', [CarController::class, 'findCar']);
+Route::post('/checkout', [CarController::class, 'checkOut']);
 Route::apiResource('brand', BrandContoller::class);
 Route::apiResource('category', CategoryContoller::class);
 

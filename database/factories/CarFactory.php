@@ -2,7 +2,10 @@
 
 namespace Database\Factories;
 
+use App\Models\Brand;
 use App\Models\Car;
+use App\Models\Category;
+use App\Models\Location;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Faker\Generator as Faker;
 
@@ -26,11 +29,16 @@ class CarFactory extends Factory
             'Price' => fake()->numberBetween(10000, 50000),
             'Capacity' => fake()->numberBetween(2, 7),
             'Image' => fake()->imageUrl(640, 480, 'cars', true),
-            'FuelType' => fake()->randomElement(['Petrol', 'Diesel', 'Electric', 'Hybrid']),
+            'FuelType' => fake()->randomElement(['diesel', 'essence', 'electric', 'hybrid/essence', 'hybrid/diesel']),
             'TransmissionType' => fake()->randomElement(['Manual', 'Automatic']),
-            'CurrentStatus' => fake()->randomElement(['Available', 'Unavailable']),
-            'CategoryID' => fake()->numberBetween(1, 10),
-            'BrandID' => fake()->numberBetween(1, 10),
+            'CurrentStatus' => fake()->randomElement([
+                'Available',
+                'Unavailable',
+
+            ]),
+            'CategoryID' => Category::inRandomOrder()->first()->id ?? Category::factory(),
+            'BrandID' => Brand::inRandomOrder()->first()->id ?? Brand::factory(),
+            'LocationID' => Location::inRandomOrder()->first()->id ?? Location::factory(),
         ];
     }
 }

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->decimal('TotalCost', 10, 2);
             $table->enum('Status', ['Pending', 'Confirmed', 'Active', 'Completed', 'Cancelled', 'Expired', 'Returned', 'Overdue', 'Damaged', 'Refunded'])->default('Pending');
             $table->string('AdditionalRequirements')->nullable();
-            $table->bigInteger('PhoneNumber');
+            $table->string('PhoneNumber', 255);
             $table->string('City');
             $table->unsignedBigInteger('PickupLocationID');
             $table->unsignedBigInteger('ReturnLocationID');

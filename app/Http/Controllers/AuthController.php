@@ -33,11 +33,11 @@ class AuthController extends Controller implements HasMiddleware
 
             // Create a new user 
             $user = User::create([
-                'FirstName' => $data['FirstName'],
-                'LastName' => $data['LastName'],
-                'Email' => $data['Email'],
-                'Username' => $data['Username'],
-                'Password' => bcrypt($data['Password']),
+                'firstName' => $data['firstName'],
+                'lastName' => $data['lastName'],
+                'email' => $data['email'],
+                'username' => $data['username'],
+                'password' => bcrypt($data['password']),
             ]);
 
             // Return response with success message
@@ -55,18 +55,18 @@ class AuthController extends Controller implements HasMiddleware
             $credentials = $request->validated();
 
             //Retrieve the user by email
-            $user = User::where('Email', $credentials['Email'])->first();
+            $user = User::where('email', $credentials['email'])->first();
 
 
             // Check if the user exists and the password matches
-            if (!$user || !Hash::check($credentials['Password'], $user->Password)) {
+            if (!$user || !Hash::check($credentials['password'], $user->password)) {
                 return response()->json(['message' => 'Provided email or password is incorrect'], 422);
             }
- 
+
             // Customize the token payload with the user's ID or other identifying information
             $customPayload = [
                 'user_id' => $user->id,
-                'user_name' => $user->FirstName,
+                'user_name' => $user->firstName,
             ];
 
             // // Generate access token

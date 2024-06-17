@@ -6,10 +6,12 @@ use App\Http\Requests\CarStoreRequest;
 use App\Http\Requests\CarUpdateRequest;
 use App\Models\Car;
 use App\Models\Location;
+use App\Models\Rental;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use PhpParser\Node\Stmt\TryCatch;
 
 class CarController extends Controller
 {
@@ -156,7 +158,7 @@ class CarController extends Controller
                 $query->where('CurrentStatus', 'Available');
             }])->find($request->locationID);
 
-            $availableCarCount = $availableCarsAtLocation->count();
+            $availableCarCount = $availableCarsAtLocation->cars->count();
 
             return response()->json([
                 "availableCarsAtLocation" => $availableCarsAtLocation,
@@ -166,6 +168,49 @@ class CarController extends Controller
             return response()->json([
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function checkOut(Request $request)
+    {
+
+        try {
+            // dd($request);
+            $jsonData = $request->getContent();
+            // $paymentData = $request->input('paymentInfo');
+            // dd($jsonData);
+
+            $data = json_decode($jsonData);
+
+            // dd($data);
+
+            //  Check if JSON decoding was successful
+            if (json_last_error() !== JSON_ERROR_NONE) {
+                return response()->json(['error' => 'Invalid JSON data'], 400);
+            }
+
+            // Extract rentalInfo and paymentInfo
+            $rentalData = (array) $data->rentalInfo ?? null;
+            $paymentData = (array) $data->paymentInfo ?? null;
+
+            // dd(gettype($rentalData), gettype($paymentData));
+            // dd($rentalData, $paymentData);
+            $rental = null;
+            $payment = null;
+
+            // Use transaction to ensure atomicity
+            DB::transaction(function () use ($rentalData, $paymentData, &$rental, &$payment) {
+                $rental = Rental::create($rentalData);
+                $payment = $rental->payement()->create(array_merge($paymentData, ['RentalID' => $rental->id]));
+            });
+
+            return response()->json([
+                "msg" => "success"
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ]);
         }
     }
 }
