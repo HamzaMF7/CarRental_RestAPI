@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
             BrandSeeder::class,
             LocationSeeder::class,
             CarAndDetailsSeeder::class,
+            ReviewSeeder::class,
         ]);
     }
 }

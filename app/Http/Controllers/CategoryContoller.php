@@ -39,7 +39,6 @@ class CategoryContoller extends Controller
 
             return response()->json([
                 'message' => 'New category created successfully',
-                'category' => $category
             ]);
         } catch (\Throwable $e) {
             return response()->json([

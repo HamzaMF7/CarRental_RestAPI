@@ -5,6 +5,9 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BrandContoller;
 use App\Http\Controllers\CarController;
 use App\Http\Controllers\CategoryContoller;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RentalController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Middleware\VerifyJWT;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -43,11 +46,25 @@ Route::group(['prefix' => 'admin'], function () {
 });
 
 
+// Cars APIs
 Route::apiResource('car', CarController::class);
 Route::post('/findcar', [CarController::class, 'findCar']);
-Route::post('/checkout', [CarController::class, 'checkOut']);
+Route::post('/filter', [CarController::class, 'applyFilters']);
+Route::get('/cars/price-range', [CarController::class, 'priceRange']);
+// Brands APIs
 Route::apiResource('brand', BrandContoller::class);
+// Categories APIs
 Route::apiResource('category', CategoryContoller::class);
+// Rentals APIs
+Route::apiResource('rental', RentalController::class);
+Route::post('/rental/checkout', [RentalController::class, 'store']);
+// Payments APIs
+Route::apiResource('payment', PaymentController::class);
+// Reviews APIs
+Route::apiResource('review', ReviewController::class);
+Route::post('/review/{carID}', [ReviewController::class, 'carReviews']);
+
+
 
 
 

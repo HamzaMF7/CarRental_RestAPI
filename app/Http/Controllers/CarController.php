@@ -171,46 +171,117 @@ class CarController extends Controller
         }
     }
 
-    public function checkOut(Request $request)
+    public function applyFilters(Request $request)
     {
 
         try {
-            // dd($request);
-            $jsonData = $request->getContent();
-            // $paymentData = $request->input('paymentInfo');
-            // dd($jsonData);
+            $query = Car::query();
+            $sortedValue = $request->input('sorted_value', 'None');
 
-            $data = json_decode($jsonData);
-
-            // dd($data);
-
-            //  Check if JSON decoding was successful
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                return response()->json(['error' => 'Invalid JSON data'], 400);
+            switch ($sortedValue) {
+                case 'None':
+                    break;
+                case 'Popular Car':
+                    // using the rentals relationship
+                    $query->withCount('rentals')->orderByDesc('rentals_count');
+                    break;
+                case 'Top Rated':
+                    // using the review relationship
+                    $query->withAvg('review', 'Rating')->orderByDesc('review_avg_rating');
+                    break;
+                case 'Price(Lowest First)':
+                    $query->orderBy('Price', 'asc');
+                    break;
+                case 'Price(Highest First)':
+                    $query->orderBy('Price', 'desc');
+                    break;
+                default:
+                    abort(400, 'Wrong option selected');
             }
 
-            // Extract rentalInfo and paymentInfo
-            $rentalData = (array) $data->rentalInfo ?? null;
-            $paymentData = (array) $data->paymentInfo ?? null;
+            // Apply brand filters 
+            $brandFilters = $request->input('brandFilters', []);
+            if (count($brandFilters)) {
+                $query->whereHas('brand', function ($q) use ($brandFilters) {
+                    $q->whereIn('BrandName', $brandFilters);
+                });
+            }
 
-            // dd(gettype($rentalData), gettype($paymentData));
-            // dd($rentalData, $paymentData);
-            $rental = null;
-            $payment = null;
+            // Apply category filters
+            $categoryFilters = $request->input('categoryFilters', []);
+            if (count($categoryFilters)) {
+                $query->whereHas('category', function ($q) use ($categoryFilters) {
+                    $q->whereIn('CategoryName', $categoryFilters);
+                });
+            }
 
-            // Use transaction to ensure atomicity
-            DB::transaction(function () use ($rentalData, $paymentData, &$rental, &$payment) {
-                $rental = Rental::create($rentalData);
-                $payment = $rental->payement()->create(array_merge($paymentData, ['RentalID' => $rental->id]));
-            });
+            // Apply price filter
+            $choosedPrice = $request->input('choosedPrice');
+            if ($choosedPrice) {
+                $query->where('Price', '<=', $choosedPrice);
+            }
+
+            $cars = $query->with(['brand', 'category'])->paginate(15);
 
             return response()->json([
-                "msg" => "success"
+                'filtred cars' => $cars,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
-                'error' => $e->getMessage(),
-            ]);
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
+
+    public function priceRange()
+    {
+        $priceRange = Car::selectRaw('MIN(Price) as min_price, MAX(Price) as max_price')->first();
+        return response()->json([
+            'min_price' => $priceRange->min_price ?? 0,
+            'max_price' => $priceRange->max_price ?? 0,
+        ]);
+    }
+
+    // public function checkOut(Request $request)
+    // {
+
+    //     try {
+    //         // dd($request);
+    //         $jsonData = $request->getContent();
+    //         // $paymentData = $request->input('paymentInfo');
+    //         // dd($jsonData);
+
+    //         $data = json_decode($jsonData);
+
+    //         // dd($data);
+
+    //         //  Check if JSON decoding was successful
+    //         if (json_last_error() !== JSON_ERROR_NONE) {
+    //             return response()->json(['error' => 'Invalid JSON data'], 400);
+    //         }
+
+    //         // Extract rentalInfo and paymentInfo
+    //         $rentalData = (array) $data->rentalInfo ?? null;
+    //         $paymentData = (array) $data->paymentInfo ?? null;
+
+    //         // dd(gettype($rentalData), gettype($paymentData));
+    //         // dd($rentalData, $paymentData);
+    //         $rental = null;
+    //         $payment = null;
+
+    //         // Use transaction to ensure atomicity
+    //         DB::transaction(function () use ($rentalData, $paymentData, &$rental, &$payment) {
+    //             $rental = Rental::create($rentalData);
+    //             $payment = $rental->payement()->create(array_merge($paymentData, ['RentalID' => $rental->id]));
+    //         });
+
+    //         return response()->json([
+    //             "msg" => "success"
+    //         ]);
+    //     } catch (\Throwable $e) {
+    //         return response()->json([
+    //             'error' => $e->getMessage(),
+    //         ]);
+    //     }
+    // }
 }

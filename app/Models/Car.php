@@ -29,16 +29,26 @@ class Car extends Model
 
     public function category()
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'CategoryID');
     }
 
     public function brand()
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Brand::class, 'BrandID');
     }
 
     public function location()
     {
         return $this->hasOne(Location::class);
+    }
+
+    public function review()
+    {
+        return $this->hasMany(Review::class, 'CarID');
+    }
+
+    public function rentals()
+    {
+        return $this->hasMany(Rental::class, 'CarID');
     }
 }
